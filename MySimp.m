@@ -1,33 +1,46 @@
-function [SimpV, SimpF] = MySimp4(vertices, faces, vertexflag)
+function [SimpV, SimpF] = MySimp(vertices, faces, vertexflag)
+% ç®€åŒ–å°é—­ä¸‰è§’ç½‘æ ¼ / simplify closed tri-mesh
+%
+% è¾“å…¥å‚æ•°(vargin):
+%          vertices: nv x 3, nv:é¡¶ç‚¹æ•°
+%             faces: nf x 3, nf:é¢æ•°
+%        vertexflag: ng    , ng:æœŸæœ›é¡¶ç‚¹æ•°
+%
+% è¾“å‡ºå‚æ•°(vargout)ï¼š 
+%           SimpVï¼šng x 3 ,ç®€åŒ–åçš„ç‚¹
+%           SimpFï¼š?? x 3 ,ç®€åŒ–åçš„é¢
+%
+% exampleï¼š[SimpV, SimpF] = MySimp4(vertices, faces, 200)
+%
 
-%% Í³¼ÆÄ£ĞÍµÄµãÊıºÍÃæÊı
+% ç»Ÿè®¡æ¨¡å‹çš„ç‚¹æ•°å’Œé¢æ•°
 num_vertex = size(vertices, 1);
 
-%% ¼ÆËãÃæ·¨ÏòÁ¿ºÍÃæ³£Á¿d
-faces = faces + 1; % Ô­Ê¼ÃæË÷Òı´Ó0¿ªÊ¼£¬Òò´Ë¼Ó1
+% è®¡ç®—é¢æ³•å‘é‡å’Œé¢å¸¸é‡d
+faces = faces + 1; % åŸå§‹é¢ç´¢å¼•ä»0å¼€å§‹ï¼Œå› æ­¤åŠ 1
 normal_face = zeros(size(faces,1), 3);
 d = zeros(size(faces,1), 1);
 updata_normal_d(1:size(faces,1));
 
-%% ¼ÆËãÃ¿¸öµãµÄQ
-Q = zeros(num_vertex, 2); % ³õÊ¼»¯
+%% è®¡ç®—æ¯ä¸ªç‚¹çš„Q
+Q = zeros(num_vertex, 2); % åˆå§‹åŒ–
 updataVertexQ(1:num_vertex);
 
-%% ¼ÆËãÃ¿¸ö±ßµÄcost
+%% è®¡ç®—æ¯ä¸ªè¾¹çš„cost
 temp = [faces(:,[1,2]); faces(:,[1,3]); faces(:,[2,3]);faces(:,[2,1]); faces(:,[3,1]); faces(:,[3,2])];
 temp = triu(sparse(temp(:,1), temp(:,2), ones(size(temp,1), 1)));
 [tempr, tempc] = find(temp~=0);
 edges = [tempr, tempc];
 
-%% ¿ªÊ¼¼ò»¯
+%% å¼€å§‹ç®€åŒ–
 num_newvertex = num_vertex;
 while(num_newvertex > vertexflag)
     
     [~, token] = min(Q(:,1));
-    ind1_coll_ver = Q(token, 2); % ±£Áôµã
-    ind2_coll_ver = token; % ÊÕËõµã
+    ind1_coll_ver = Q(token, 2); % ä¿ç•™ç‚¹
+    ind2_coll_ver = token; % æ”¶ç¼©ç‚¹
     
-    % ²éÕÒ°üº¬ÊÕËõµãµÄÃæË÷Òı
+    % æŸ¥æ‰¾åŒ…å«æ”¶ç¼©ç‚¹çš„é¢ç´¢å¼•
     [neibor_ver1, ~] = neiborVertexFace(ind1_coll_ver);
     [neibor_ver2, neibor_face2] = neiborVertexFace(ind2_coll_ver);
     if( isempty(neibor_face2) )
@@ -72,7 +85,7 @@ while(num_newvertex > vertexflag)
     
     num_newvertex = sum(Q(:,1)~=intmax);
 end
-% Êä³ö¼ò»¯¶¥µãºÍÃæ
+% è¾“å‡ºç®€åŒ–é¡¶ç‚¹å’Œé¢
 disp('Merging results ...')
 verInd_remain = unique(faces(:));
 SimpV = vertices(verInd_remain,:);
@@ -99,18 +112,18 @@ disp('Merging done.')
             ind = ind';
         end
         for iter = ind
-            % ¼ÆËãÃ¿¸öµãµÄÁÚ½ÓµãºÍÁÚ½ÓÃæ
+            % è®¡ç®—æ¯ä¸ªç‚¹çš„é‚»æ¥ç‚¹å’Œé‚»æ¥é¢
             [neibor_vertex, neibor_face] = neiborVertexFace(iter);
             if( isempty(neibor_face) )
                 Q(iter,:) = [intmax, nan];
                 continue;
             end
-            % ¼ÆËãÃ¿¸öµãµÄÁÚ½ÓµãµÄQ
+            % è®¡ç®—æ¯ä¸ªç‚¹çš„é‚»æ¥ç‚¹çš„Q
             Q_neibor_vertex = zeros(length(neibor_vertex), 1);
             for j = 1:length(neibor_vertex)
                 Q_neibor_vertex(j) = sum((sum(normal_face(neibor_face,:) .* repmat(vertices(neibor_vertex(j),:),length(neibor_face),1), 2) + d(neibor_face) ).^2);
             end
-            % Ã¿¸öµãµÄQ=¸ÃµãÁÚ½ÓµãµÄQµÄ×î´óÖµ
+            % æ¯ä¸ªç‚¹çš„Q=è¯¥ç‚¹é‚»æ¥ç‚¹çš„Qçš„æœ€å¤§å€¼
             [Q(iter,1), tind] = min(Q_neibor_vertex);
             Q(iter,2) = neibor_vertex(tind);
         end
